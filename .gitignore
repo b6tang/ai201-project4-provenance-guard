@@ -1,0 +1,22 @@
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Python cache / build files
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.egg-info/
+
+# Virtual environment
+.venv/
+
+# Test / coverage cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# VS Code local settings
+.vscode/
