@@ -167,7 +167,20 @@ An appeal provides the original `content_id` and the creator's reasoning. It cha
 * **What I will verify before using the output:** I will test `llm_classify(text)` directly with several texts and verify that it returns a float from `0.0` to `1.0`, not a binary flag. After wiring it into `/submit`, I will verify that the route accepts `text` and `creator_id` and returns a unique `content_id` plus the Signal 1 result. After adding logging, I will submit several texts and verify that each submission creates one structured entry containing a timestamp, `content_id`, attribution, confidence, Signal 1 score, and status, and that `GET /log` returns those entries.
 
 
-### Milestone 4 — Second signal + confidence scoring
+### Milestone 4 — Second Signal and Confidence Scoring
+
+* **Spec sections provided to the AI tool:** The `Detection Signals` section for Signal 2, the `Uncertainty Representation` section, and the submission-flow architecture diagram.
+
+* **What I will ask the AI tool to generate:** A standalone stylometric signal function that returns `stylometric_ai_likelihood` from `0.0` to `1.0` using sentence-length variation, type-token ratio, and punctuation density. I will also ask for confidence-scoring logic that combines `llm_ai_likelihood` and `stylometric_ai_likelihood` exactly as specified in my planning document:
+
+```python
+raw_ai_likelihood = (llm_ai_likelihood + stylometric_ai_likelihood) / 2
+signal_disagreement = abs(llm_ai_likelihood - stylometric_ai_likelihood)
+combined_ai_score = raw_ai_likelihood * (1 - signal_disagreement) + 0.5 * signal_disagreement
+```
+
+* **What I will verify before using the output:** I will test the stylometric signal independently on the same texts used for Signal 1 and confirm that it returns a float from `0.0` to `1.0`. I will compare where the two signals agree and disagree. I will also test the scoring logic with known score pairs and verify that it matches my thresholds: `combined_ai_score >= 0.80` becomes `likely_ai`, `combined_ai_score <= 0.30` becomes `likely_human`, and all scores between those ranges become `uncertain`. Finally, I will confirm that clearly different texts produce meaningfully different combined scores before wiring the second signal into `/submit`.
+
 
 
 ### Milestone 5 — Production layer
