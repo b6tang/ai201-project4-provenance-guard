@@ -267,6 +267,5 @@ ai201-project4-provenance-guard/
 ├── requirements.txt
 ├── audit_log.jsonl
 ├── .gitignore
-└── ProvenanceGuardVideo/
-    └── Demo.mp4
+└── demo-preview.png
 ```
