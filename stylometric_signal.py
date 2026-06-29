@@ -16,16 +16,12 @@ MIN_SENTENCES = 3
 MIN_WORDS = 20
 
 
-# Heuristic ceiling for sentence-length variability. # A CoV of 1.5 means the standard deviation of sentence lengths is # 1.5 times the mean sentence length, indicating extremely uneven # sentence lengths. Values at or above this cap are treated as # maximally irregular for this feature. # This is a design choice, not a calibrated statistical threshold.
-SENTENCE_LENGTH_COV_CAP = 1.5 
+# Heuristic ceiling for sentence-length variability. # A CoV of x means the standard deviation of sentence lengths is # x times the mean sentence length, indicating extremely uneven # sentence lengths. Values at or above this cap are treated as # maximally irregular for this feature. # This is a design choice, not a calibrated statistical threshold.
+SENTENCE_LENGTH_COV_CAP = 0.80
 
+# Heuristic ceiling for punctuation density. # A density of 0.x means that x% of the characters in the text are # punctuation characters. Text at or above this cap is treated as # maximally punctuation-heavy for this feature. # This is a design choice, not a calibrated statistical threshold. 
+PUNCTUATION_DENSITY_CAP = 0.03
 
-# Heuristic ceiling for punctuation density.
-# A density of 0.15 means that 15% of the characters in the text are
-# punctuation characters. Text at or above this cap is treated as
-# maximally punctuation-heavy for this feature.
-# This is a design choice, not a calibrated statistical threshold.
-PUNCTUATION_DENSITY_CAP = 0.15
 
 # ---------------------------------------------------------------------------
 # Internal helpers — one per metric
@@ -89,7 +85,7 @@ def _sentence_length_variation_score(sentences: list) -> float:
       1. Count words in each sentence.
       2. Compute the coefficient of variation (CoV = std_dev / mean).
          CoV close to 0 means all sentences are roughly the same length.
-      3. Divide CoV by 1.5 (a generous ceiling for very erratic text) to map
+      3. Divide CoV by SENTENCE_LENGTH_COV_CAP (a generous ceiling for very erratic text) to map
          it to [0, 1], then invert: score = 1 - normalized_CoV.
 
     Result: uniform text → low CoV → score near 1.0 (AI-like).
@@ -101,11 +97,10 @@ def _sentence_length_variation_score(sentences: list) -> float:
     variance = sum((ln - mean) ** 2 for ln in lengths) / len(lengths)
     std_dev = variance ** 0.5
     cov = std_dev / mean
-    SENTENCE_LENGTH_COV_CAP = 1.5  # heuristic ceiling; not calibrated on 
     
     # Normalize CoV to a 0–1 irregularity scale using a heuristic cap.
     # CoV = 0.0 means all sentences have the same length.
-    # CoV = 1.5 or higher is treated as extremely uneven sentence length.
+    # CoV = SENTENCE_LENGTH_COV_CAP or higher is treated as extremely uneven.
     normalized = min(cov / SENTENCE_LENGTH_COV_CAP, 1.0)
     return 1.0 - normalized
 
@@ -128,30 +123,39 @@ def _type_token_ratio_score(words: list) -> float:
 
 def _punctuation_density_score(text: str) -> float:
     """
-    Low punctuation density → fewer expressive marks → AI-like → score close to 1.0.
+    Low punctuation density → less punctuation variation → AI-like → score close to 1.0.
 
     How it works:
-      1. Count punctuation characters (! ? . , ; : ... etc.) as a fraction of
-         total characters.
-      2. Divide by 0.15 (15% is a high ceiling) to map to [0, 1].
-      3. Invert: score = 1 - normalized_density.
+      1. Count punctuation characters individually.
+      2. Treat an ellipsis such as "..." as one punctuation event rather than
+         three separate periods.
+      3. Divide punctuation events by total text characters to calculate density.
+      4. Normalize the density using PUNCTUATION_DENSITY_CAP, then invert it.
 
-    Result: formal text with only sentence-ending periods → low density → near 1.0.
-            casual text with !! ?? ... → higher density → lower score.
+    Result: lower punctuation density → score near 1.0 (AI-like).
+            higher punctuation density → score near 0.0 (human-like).
     """
     if not text:
         return 0.5
-    punct_count = sum(1 for ch in text if ch in string.punctuation)
-    density = punct_count / len(text)
 
-    # Normalize punctuation density to a 0–1 punctuation-heavy scale.
-    # density = 0.00 means no punctuation characters.
-    # density = 0.075 maps to 0.5 of the cap.
-    # density >= 0.15 is treated as maximally punctuation-heavy.
+    # Treat each standard three-dot ellipsis as one punctuation event.
+    # Longer runs are replaced in groups of three, so extra periods still count.
+    # For example: "..." -> "…", "...." -> "….", "....." -> "…..".
+    # This preserves irregular extra periods as additional punctuation evidence.
+    normalized_for_counting = re.sub(r"\.{3}", "…", text)
+
+    punctuation_chars = string.punctuation + "…“”‘’"
+
+    punctuation_count = sum(
+        1
+        for character in normalized_for_counting
+        if character in punctuation_chars
+    )
+
+    density = punctuation_count / len(text)
     normalized = min(density / PUNCTUATION_DENSITY_CAP, 1.0)
-    # Lower punctuation density is treated as more AI-like by this heuristic.
-    return 1.0 - normalized
 
+    return 1.0 - normalized
 
 # ---------------------------------------------------------------------------
 # Public function
@@ -167,7 +171,7 @@ def stylometric_classify(text: str) -> float:
 
     The final score is the equal-weight average of three sub-scores:
       - sentence-length variation  (low variation → AI-like)
-      - type-token ratio           (high vocabulary diversity → AI-like)
+      - type-token ratio           (low vocabulary diversity → AI-like)
       - punctuation density        (low density → AI-like)
     """
     if not isinstance(text, str) or not text.strip():

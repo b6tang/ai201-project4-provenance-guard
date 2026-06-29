@@ -58,8 +58,7 @@ def combine_scores(
 
     # Pull the combined score toward 0.5 when the signals disagree strongly.
     combined_ai_score = (
-        raw_ai_likelihood * (1 - signal_disagreement)
-        + 0.5 * signal_disagreement
+        raw_ai_likelihood * (1 - signal_disagreement) + 0.5 * signal_disagreement
     )
 
     # Apply classification thresholds.

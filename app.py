@@ -1,6 +1,8 @@
 import uuid
 from flask import Flask, request, jsonify
 from llm_signal import llm_classify
+from stylometric_signal import stylometric_classify
+from scoring import combine_scores
 from audit_log import log_event, read_log
 
 app = Flask(__name__)
@@ -24,17 +26,22 @@ def submit():
 
     try:
         llm_ai_likelihood = llm_classify(text)
+        stylometric_ai_likelihood = stylometric_classify(text)
     except Exception as e:
         return jsonify({"error": f"Classification failed: {str(e)}"}), 500
 
-    if llm_ai_likelihood >= 0.5:
-        attribution = "likely_ai"
-        confidence = llm_ai_likelihood
-        label = "Preliminary result: this text may be AI-generated. A second signal is still pending."
+    scores = combine_scores(llm_ai_likelihood, stylometric_ai_likelihood)
+
+    attribution = scores["attribution"]
+    combined_ai_score = scores["combined_ai_score"]
+    confidence = max(combined_ai_score, 1 - combined_ai_score)
+
+    if attribution == "likely_ai":
+        label = "Multi-signal result: this text is likely AI-generated."
+    elif attribution == "likely_human":
+        label = "Multi-signal result: this text is likely human-written."
     else:
-        attribution = "likely_human"
-        confidence = 1 - llm_ai_likelihood
-        label = "Preliminary result: this text may be human-written. A second signal is still pending."
+        label = "Multi-signal result: uncertain. The signals were mixed or not strong enough for a reliable classification."
 
     content_id = str(uuid.uuid4())
 
@@ -44,6 +51,10 @@ def submit():
         "attribution": attribution,
         "confidence": confidence,
         "llm_ai_likelihood": llm_ai_likelihood,
+        "stylometric_ai_likelihood": stylometric_ai_likelihood,
+        "raw_ai_likelihood": scores["raw_ai_likelihood"],
+        "signal_disagreement": scores["signal_disagreement"],
+        "combined_ai_score": combined_ai_score,
         "status": "classified",
     })
 
@@ -51,6 +62,10 @@ def submit():
         "content_id": content_id,
         "creator_id": creator_id,
         "llm_ai_likelihood": llm_ai_likelihood,
+        "stylometric_ai_likelihood": stylometric_ai_likelihood,
+        "raw_ai_likelihood": scores["raw_ai_likelihood"],
+        "signal_disagreement": scores["signal_disagreement"],
+        "combined_ai_score": combined_ai_score,
         "attribution": attribution,
         "confidence": confidence,
         "label": label,
