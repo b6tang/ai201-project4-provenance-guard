@@ -57,6 +57,8 @@ This signal is limited by genre, editing, language proficiency, and text length.
 
 ### Combining Scores
 
+I used equal weights because I did not have validation data showing that either signal was consistently more reliable. The two signals capture complementary evidence: the LLM evaluates semantic and stylistic patterns, while the stylometric signal evaluates structural patterns.
+
 The system first averages both scores:
 
 ```python
@@ -96,6 +98,7 @@ The API returns directional confidence using:
 
 ```python
 confidence = max(combined_ai_score, 1 - combined_ai_score)
+```
 
 ## Transparency Labels
 
@@ -117,6 +120,8 @@ Creators can submit an appeal with a content_id and creator_reasoning. The endpo
 
 The project uses an append-only JSONL audit log. The original classification is not overwritten. Instead, the appeal is stored as a second event with the same content_id. This preserves the original decision and creates a review history.
 
+### Rate Limiting
+
 `POST /submit` is rate limited per client IP:
 
 ```text
@@ -125,6 +130,25 @@ The project uses an append-only JSONL audit log. The original classification is 
 ```
 
 The API returns HTTP `429 Too Many Requests` after the limit is reached.
+
+I chose these limits because a normal creator may submit or revise a few drafts in a short period, while repeated automated requests could consume LLM API capacity, create unnecessary cost, and flood the audit log.
+
+I tested 12 rapid requests. The first 10 returned `200`, and requests 11 and 12 returned `429`.
+
+```
+Request 1 : HTTP 200
+Request 2 : HTTP 200
+Request 3 : HTTP 200
+Request 4 : HTTP 200
+Request 5 : HTTP 200
+Request 6 : HTTP 200
+Request 7 : HTTP 200
+Request 8 : HTTP 200
+Request 9 : HTTP 200
+Request 10 : HTTP 200
+Request 11 : HTTP 429
+Request 12 : HTTP 429
+```
 
 ## Validation Results
 
@@ -217,27 +241,6 @@ Claude added `get_label(attribution)` and replaced the hard-coded label logic in
 I gave Claude the appeals section of my planning document, `app.py`, and `audit_log.py`. I asked it to add `POST /appeal` without rewriting the existing classification system.
 
 Claude added a helper to find the original classification and added an append-only appeal event. I kept the append-only design instead of modifying the original JSONL record. I tested the endpoint and confirmed that the log showed both the original classification and the appeal event.
-
-### Rate Limiting
-
-I chose these limits because a normal creator may submit or revise a few drafts in a short period, while repeated automated requests could consume LLM API capacity, create unnecessary cost, and flood the audit log.
-
-I tested 12 rapid requests. The first 10 returned `200`, and requests 11 and 12 returned `429`.
-
-```
-Request 1 : HTTP 200
-Request 2 : HTTP 200
-Request 3 : HTTP 200
-Request 4 : HTTP 200
-Request 5 : HTTP 200
-Request 6 : HTTP 200
-Request 7 : HTTP 200
-Request 8 : HTTP 200
-Request 9 : HTTP 200
-Request 10 : HTTP 200
-Request 11 : HTTP 429
-Request 12 : HTTP 429
-```
 
 
 ## Walkthrough Video

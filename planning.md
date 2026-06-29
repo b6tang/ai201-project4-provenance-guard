@@ -69,8 +69,8 @@ Classification thresholds:
     "creator_reasoning": "The creator's explanation for why the classification may be incorrect." 
 }
 ```
-* **what status changes, what gets logged?:** When an appeal is received, the system finds the matching content_id, updates its status to "under_review", and logs the appeal alongside the original classification. The audit log records the content_id, appeal_reasoning, and timestamp. The system returns a confirmation response and does not automatically re-classify the content.
-* **What a human reviewer should see:** For this project, exposes review-relevant records: timestamp, creator_id, content_id, attribution result, confidence score, individual signal scores, current status, and appeal_reasoning for each appealed submission.
+* **what status changes, what gets logged?:** When an appeal is received, the system finds the matching content_id, updates its status to "under_review", and logs the appeal alongside the original classification. The audit log records the content_id, creator_reasoning, and timestamp. The system returns a confirmation response and does not automatically re-classify the content.
+* **What a human reviewer should see:** For this project, exposes review-relevant records: timestamp, creator_id, content_id, attribution result, confidence score, individual signal scores, current status, and creator_reasoning for each appealed submission.
 
 ## Anticipated Edge Cases
 
@@ -102,19 +102,19 @@ Submitted text
       │       │
       │       ▼  {"llm_ai_likelihood": float}
       │
-      ├──▶ Signal 2: calculate_stylometric_score(text)
+      ├──▶ Signal 2: stylometric_classify(text)
       │       │
       │       ▼  {"stylometric_ai_likelihood": float}
       │
       ▼
-calculate_confidence(llm_ai_likelihood, stylometric_ai_likelihood)
+combine_scores(llm_ai_likelihood, stylometric_ai_likelihood)
       │
       ▼  {"raw_ai_likelihood": float,
       │     "signal_disagreement": float,
       │     "combined_ai_score": float}
       │
       ▼
-select_attribution_and_label(combined_ai_score)
+get_label(combined_ai_score)
       │
       ▼  {"attribution": str, "label": str}
       │
