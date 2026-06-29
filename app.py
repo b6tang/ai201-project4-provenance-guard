@@ -2,7 +2,7 @@ import uuid
 from flask import Flask, request, jsonify
 from llm_signal import llm_classify
 from stylometric_signal import stylometric_classify
-from scoring import combine_scores
+from scoring import combine_scores, get_label
 from audit_log import log_event, read_log
 
 app = Flask(__name__)
@@ -36,12 +36,7 @@ def submit():
     combined_ai_score = scores["combined_ai_score"]
     confidence = max(combined_ai_score, 1 - combined_ai_score)
 
-    if attribution == "likely_ai":
-        label = "Multi-signal result: this text is likely AI-generated."
-    elif attribution == "likely_human":
-        label = "Multi-signal result: this text is likely human-written."
-    else:
-        label = "Multi-signal result: uncertain. The signals were mixed or not strong enough for a reliable classification."
+    label = get_label(attribution)
 
     content_id = str(uuid.uuid4())
 
@@ -55,6 +50,7 @@ def submit():
         "raw_ai_likelihood": scores["raw_ai_likelihood"],
         "signal_disagreement": scores["signal_disagreement"],
         "combined_ai_score": combined_ai_score,
+        "label": label,
         "status": "classified",
     })
 

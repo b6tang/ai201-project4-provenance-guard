@@ -183,4 +183,16 @@ combined_ai_score = raw_ai_likelihood * (1 - signal_disagreement) + 0.5 * signal
 
 
 
-### Milestone 5 — Production layer
+### Milestone 5 — Production Layer
+
+* **Spec sections provided to the AI tool:** The `Transparency Label Design` section, the `Appeals Workflow` section, and the architecture diagram.
+
+* **What I will ask the AI tool to generate:**
+
+  1. A label-generation function that maps `combined_ai_score` to the correct attribution category and the exact corresponding transparency-label text.
+  2. A `POST /appeal` endpoint that accepts `content_id` and `creator_reasoning`, changes the matching submission's status to `under_review`, and records the appeal with the original classification.
+
+* **What I will verify before using the output:**
+
+  * I will test the label function with one score from each threshold range and confirm that all three label variants are reachable and that the returned wording exactly matches the labels in this planning document.
+  * I will submit content, save its returned `content_id`, and send an appeal request. I will verify that the response shows `status: "under_review"` and that the appeal is recorded alongside the original classification.

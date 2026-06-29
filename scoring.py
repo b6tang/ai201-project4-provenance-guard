@@ -79,6 +79,40 @@ def combine_scores(
     }
 
 
+_LABELS = {
+    "likely_ai": (
+        "Likely AI-generated. The system found strong patterns consistent with "
+        "AI-generated writing. This is an estimate, not proof of authorship."
+    ),
+    "likely_human": (
+        "Likely human-written. The system found strong patterns consistent with "
+        "human-written writing. This is an estimate, not proof of authorship."
+    ),
+    "uncertain": (
+        "Uncertain. The signals were mixed or not strong enough for the system "
+        "to make a reliable authorship classification."
+    ),
+}
+
+
+def get_label(attribution: str) -> str:
+    """
+    Return the transparency label for a given attribution string.
+
+    Uses attribution ("likely_ai", "likely_human", "uncertain") rather than
+    the confidence float, because confidence is directional and cannot
+    distinguish likely_ai from likely_human on its own.
+
+    Raises ValueError for any unrecognised attribution value.
+    """
+    if attribution not in _LABELS:
+        raise ValueError(
+            f"Unknown attribution '{attribution}'. "
+            f"Expected one of: {list(_LABELS)}"
+        )
+    return _LABELS[attribution]
+
+
 # ---------------------------------------------------------------------------
 # Quick manual test — run:  python scoring.py
 # ---------------------------------------------------------------------------
