@@ -1,5 +1,7 @@
 import uuid
 from flask import Flask, request, jsonify
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from llm_signal import llm_classify
 from stylometric_signal import stylometric_classify
 from scoring import combine_scores, get_label
@@ -7,8 +9,16 @@ from audit_log import log_event, read_log, find_classification
 
 app = Flask(__name__)
 
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://",
+)
+
 
 @app.route("/submit", methods=["POST"])
+@limiter.limit("10 per minute; 100 per day")
 def submit():
     data = request.get_json(silent=True)
 
