@@ -158,7 +158,14 @@ An appeal provides the original `content_id` and the creator's reasoning. It cha
 
 ## AI Tool Plan
 
-### Milestone 3 — Submission endpoint + first signal
+### Milestone 3 — Submission Endpoint and First Signal
+
+* **Spec sections provided to the AI tool:** The `Detection Signals` section for Signal 1, the `Submission Flow` architecture diagram, and the audit-log fields shown in the diagram.
+
+* **What I will ask the AI tool to generate:** First, a minimal Flask app skeleton with a `POST /submit` route stub and an LLM-based `llm_classify(text)` function that returns one `llm_ai_likelihood` float from `0.0` to `1.0`. After testing that signal independently, I will ask for a structured JSONL audit-log helper and a `GET /log` route that returns recent entries as JSON.
+
+* **What I will verify before using the output:** I will test `llm_classify(text)` directly with several texts and verify that it returns a float from `0.0` to `1.0`, not a binary flag. After wiring it into `/submit`, I will verify that the route accepts `text` and `creator_id` and returns a unique `content_id` plus the Signal 1 result. After adding logging, I will submit several texts and verify that each submission creates one structured entry containing a timestamp, `content_id`, attribution, confidence, Signal 1 score, and status, and that `GET /log` returns those entries.
+
 
 ### Milestone 4 — Second signal + confidence scoring
 

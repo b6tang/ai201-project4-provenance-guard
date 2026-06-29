@@ -1,6 +1,7 @@
 import uuid
 from flask import Flask, request, jsonify
 from llm_signal import llm_classify
+from audit_log import log_event, read_log
 
 app = Flask(__name__)
 
@@ -35,8 +36,19 @@ def submit():
         confidence = 1 - llm_ai_likelihood
         label = "Preliminary result: this text may be human-written. A second signal is still pending."
 
+    content_id = str(uuid.uuid4())
+
+    log_event({
+        "content_id": content_id,
+        "creator_id": creator_id,
+        "attribution": attribution,
+        "confidence": confidence,
+        "llm_ai_likelihood": llm_ai_likelihood,
+        "status": "classified",
+    })
+
     return jsonify({
-        "content_id": str(uuid.uuid4()),
+        "content_id": content_id,
         "creator_id": creator_id,
         "llm_ai_likelihood": llm_ai_likelihood,
         "attribution": attribution,
@@ -44,6 +56,11 @@ def submit():
         "label": label,
         "status": "classified",
     })
+
+
+@app.route("/log", methods=["GET"])
+def get_log():
+    return jsonify({"entries": read_log()})
 
 
 if __name__ == "__main__":
