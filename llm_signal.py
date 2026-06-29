@@ -91,17 +91,3 @@ Text to analyze:
 
     return score
 
-
-# ---------------------------------------------------------------------------
-# Quick manual test — run:  python llm_signal.py
-# ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    examples = [
-        "The sun set slowly over the hills as Maria watched, her coffee gone cold.",
-        "In conclusion, leveraging synergistic methodologies enables robust outcomes.",
-        "yo lmao i totally forgot the homework was due today bruh",
-    ]
-
-    for text in examples:
-        score = llm_classify(text)
-        print(f"Score: {score:.3f}  |  Text: {text[:60]!r}")

@@ -196,3 +196,35 @@ combined_ai_score = raw_ai_likelihood * (1 - signal_disagreement) + 0.5 * signal
 
   * I will test the label function with one score from each threshold range and confirm that all three label variants are reachable and that the returned wording exactly matches the labels in this planning document.
   * I will submit content, save its returned `content_id`, and send an appeal request. I will verify that the response shows `status: "under_review"` and that the appeal is recorded alongside the original classification.
+
+
+## Stretch Feature — Analytics Dashboard
+
+### Goal
+
+Build a simple analytics view at `GET /analytics` so a reviewer can see detection patterns and appeal behavior without manually reading every JSONL line.
+
+### Data Source
+
+The dashboard reads the existing append-only `audit_log.jsonl` file. It does not call the LLM or change any classification result.
+
+### Metrics
+
+The dashboard will display:
+
+1. **Detection pattern:** counts for `likely_ai`, `likely_human`, and `uncertain` classifications.
+2. **Appeal rate:** number of unique classified submissions with an appeal divided by total classified submissions.
+3. **Average confidence:** average `confidence` across classification records.
+4. **Total classifications:** total number of classified submissions.
+
+### Endpoint
+
+`GET /analytics` returns a simple HTML page with the metrics above.
+
+### Edge Cases
+
+If there are no classification records, the dashboard should show zero classifications, zero appeal rate, and `N/A` for average confidence. Appeal events should not be counted as classifications.
+
+### Verification
+
+I will open `http://127.0.0.1:5000/analytics` after generating test records. I will verify that the total classifications, verdict counts, appeal rate, and average confidence match the entries in `audit_log.jsonl`.

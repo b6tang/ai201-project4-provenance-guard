@@ -1,11 +1,11 @@
 import uuid
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template_string
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from llm_signal import llm_classify
 from stylometric_signal import stylometric_classify
 from scoring import combine_scores, get_label
-from audit_log import log_event, read_log, find_classification
+from audit_log import log_event, read_log, find_classification, get_analytics
 
 app = Flask(__name__)
 
@@ -117,6 +117,71 @@ def appeal():
 @app.route("/log", methods=["GET"])
 def get_log():
     return jsonify({"entries": read_log()})
+
+
+@app.route("/analytics", methods=["GET"])
+def analytics():
+    metrics = get_analytics()
+
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Analytics Dashboard</title>
+        <style>
+            body { font-family: sans-serif; margin: 20px; }
+            .card { border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 5px; }
+            .metric { font-size: 24px; font-weight: bold; color: #0066cc; }
+            .label { font-size: 12px; color: #666; text-transform: uppercase; }
+            .verdict-row { display: flex; gap: 30px; }
+            .verdict-item { text-align: center; }
+        </style>
+    </head>
+    <body>
+        <h1>Analytics Dashboard</h1>
+
+        <div class="card">
+            <div class="label">Total Classifications</div>
+            <div class="metric">{{ total }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Appeal Rate</div>
+            <div class="metric">{{ appeal_pct }}%</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Average Confidence</div>
+            <div class="metric">{{ avg_conf }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Detection Pattern Counts</div>
+            <div class="verdict-row">
+                <div class="verdict-item">
+                    <strong>Likely AI</strong><br>{{ likely_ai }}
+                </div>
+                <div class="verdict-item">
+                    <strong>Likely Human</strong><br>{{ likely_human }}
+                </div>
+                <div class="verdict-item">
+                    <strong>Uncertain</strong><br>{{ uncertain }}
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    return render_template_string(
+        html,
+        total=metrics["total_classifications"],
+        appeal_pct=round(metrics["appeal_rate"] * 100, 1),
+        avg_conf="N/A" if metrics["average_confidence"] is None else f"{metrics['average_confidence']:.3f}",
+        likely_ai=metrics["verdict_counts"]["likely_ai"],
+        likely_human=metrics["verdict_counts"]["likely_human"],
+        uncertain=metrics["verdict_counts"]["uncertain"],
+    )
 
 
 if __name__ == "__main__":

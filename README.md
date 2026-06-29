@@ -231,4 +231,15 @@ Request 12 : HTTP 429
 [Add video link here.]
 
 
-### Stretch Features
+## Stretch Feature — Analytics Dashboard
+
+I added a simple analytics dashboard at `GET /analytics`.
+
+The dashboard reads the existing append-only `audit_log.jsonl` file and does not call the LLM or change any classification result. It displays:
+
+* total classifications;
+* detection pattern counts for `likely_ai`, `likely_human`, and `uncertain`;
+* appeal rate, based on classified submissions with a linked appeal;
+* average confidence across classification records.
+
+I tested the dashboard at `http://127.0.0.1:5000/analytics` and confirmed that its displayed values matched the current audit-log entries.

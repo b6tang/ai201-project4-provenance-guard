@@ -194,37 +194,3 @@ def stylometric_classify(text: str) -> float:
     return stylometric_ai_likelihood
 
 
-# ---------------------------------------------------------------------------
-# Quick manual test — run:  python stylometric_signal.py
-# ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    examples = [
-        (
-            "Polished uniform paragraph",
-            (
-                "The study examined three key variables across five distinct participant groups. "
-                "Each variable was measured using standardized psychometric assessment protocols. "
-                "The results demonstrated broadly consistent behavioral patterns across all conditions. "
-                "Statistical analysis confirmed the significance of these preliminary experimental findings. "
-                "The observed data largely supports the proposed theoretical framework for future inquiry."
-            ),
-        ),
-        (
-            "Casual irregular paragraph",
-            (
-                "so i was just walking to class and then it started raining... like out of nowhere?? "
-                "i ran. "
-                "i got to class soaked and the professor was already talking so i just sat in the very back like a wet dog!! "
-                "i kept thinking about how i should've checked the weather before i left, i really should have, ugh. "
-                "anyway it was a bad morning i guess lol!!"
-            ),
-        ),
-        (
-            "Very short text (expect 0.5)",
-            "Hello there.",
-        ),
-    ]
-
-    for label, text in examples:
-        score = stylometric_classify(text)
-        print(f"{label}: {score}")

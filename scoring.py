@@ -112,20 +112,3 @@ def get_label(attribution: str) -> str:
         )
     return _LABELS[attribution]
 
-
-# ---------------------------------------------------------------------------
-# Quick manual test — run:  python scoring.py
-# ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    test_pairs = [
-        (0.90, 0.90),  # expected: likely_ai
-        (0.10, 0.10),  # expected: likely_human
-        (0.90, 0.10),  # expected: uncertain
-        (0.80, 0.60),  # expected: uncertain
-    ]
-
-    for llm, stylo in test_pairs:
-        result = combine_scores(llm, stylo)
-        print(f"Input: llm={llm}, stylometric={stylo}")
-        print(f"Result: {result}")
-        print()

@@ -56,6 +56,93 @@ def find_classification(content_id: str) -> dict | None:
     return None
 
 
+def read_all_events() -> list[dict]:
+    """
+    Read all valid JSONL entries from audit_log.jsonl.
+
+    Returns an empty list if the file does not exist or has no valid lines.
+    Skips any line that cannot be parsed as JSON.
+    Unlike read_log(), this returns every entry, not just the most recent 20.
+    """
+    if not os.path.exists(LOG_FILE):
+        return []
+
+    entries = []
+    with open(LOG_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError:
+                pass
+
+    return entries
+
+
+def get_analytics() -> dict:
+    """
+    Calculate analytics metrics from all classification events.
+
+    Returns:
+        {
+            "total_classifications": int,
+            "verdict_counts": {
+                "likely_ai": int,
+                "likely_human": int,
+                "uncertain": int,
+            },
+            "appeal_rate": float (0.0 to 1.0, or 0.0 if no classifications),
+            "average_confidence": float or None,
+        }
+    """
+    events = read_all_events()
+
+    # Filter to classification records only.
+    classifications = [
+        e for e in events if e.get("status") == "classified"
+    ]
+
+    if not classifications:
+        return {
+            "total_classifications": 0,
+            "verdict_counts": {"likely_ai": 0, "likely_human": 0, "uncertain": 0},
+            "appeal_rate": 0.0,
+            "average_confidence": None,
+        }
+
+    # Count verdicts by attribution.
+    verdicts = {"likely_ai": 0, "likely_human": 0, "uncertain": 0}
+    for c in classifications:
+        attribution = c.get("attribution", "uncertain")
+        if attribution in verdicts:
+            verdicts[attribution] += 1
+
+    # Count appeals: unique content_ids with at least one appeal event.
+    appealed_ids = set()
+    for e in events:
+        if e.get("event_type") == "appeal":
+            appealed_ids.add(e.get("content_id"))
+
+    classified_ids = set(c.get("content_id") for c in classifications)
+    appeal_rate = len(appealed_ids & classified_ids) / len(classifications)
+
+    # Average confidence across all classifications.
+    confidences = [
+        c.get("confidence") for c in classifications
+        if isinstance(c.get("confidence"), (int, float))
+    ]
+    avg_conf = sum(confidences) / len(confidences) if confidences else None
+
+    return {
+        "total_classifications": len(classifications),
+        "verdict_counts": verdicts,
+        "appeal_rate": appeal_rate,
+        "average_confidence": avg_conf,
+    }
+
+
 def read_log(limit: int = 20) -> list[dict]:
     """
     Return the most recent entries from audit_log.jsonl, up to `limit`.
@@ -80,25 +167,3 @@ def read_log(limit: int = 20) -> list[dict]:
     return entries[-limit:]
 
 
-# ---------------------------------------------------------------------------
-# Quick manual test — run:  python audit_log.py
-# ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    sample = {
-        "content_id": "test-content-001",
-        "creator_id": "test-user-1",
-        "attribution": "likely_ai",
-        "confidence": 0.8,
-        "llm_ai_likelihood": 0.8,
-        "status": "classified",
-    }
-
-    print("Writing sample record to audit_log.jsonl...")
-    log_event(sample)
-
-    print("Reading log back (most recent 20 entries):")
-    entries = read_log()
-    for entry in entries:
-        print(entry)
-
-    print(f"\nTotal entries visible: {len(entries)}")
