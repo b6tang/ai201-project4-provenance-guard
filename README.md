@@ -167,12 +167,21 @@ The appeal is stored as a separate JSONL event with the same `content_id`, `even
 The following excerpt is from an actual test in `audit_log.jsonl`. The original classification and its appeal share the same `content_id`.
 
 
-```
-{"content_id": "5a87fb69-efdb-4e93-b097-97a889521c14", "creator_id": "m4-test-clear-ai", "attribution": "uncertain", "confidence": 0.5488285362982145, "llm_ai_likelihood": 0.8, "stylometric_ai_likelihood": 0.3710216605488538, "raw_ai_likelihood": 0.585510830274427, "signal_disagreement": 0.4289783394511462, "combined_ai_score": 0.5488285362982145, "label": "Uncertain. The signals were mixed or not strong enough for the system to make a reliable authorship classification.", "status": "classified", "timestamp": "2026-06-29T17:58:37.148462+00:00"}
-{"content_id": "540e24aa-bfbc-4fae-b299-edd5937911a8", "creator_id": "m4-test-clear-human", "attribution": "likely_human", "confidence": 0.7652456741258724, "llm_ai_likelihood": 0.1, "stylometric_ai_likelihood": 0.26481883304062737, "raw_ai_likelihood": 0.18240941652031367, "signal_disagreement": 0.16481883304062736, "combined_ai_score": 0.23475432587412753, "label": "Likely human-written. The system found strong patterns consistent with human-written writing. This is an estimate, not proofof authorship.", "status": "classified", "timestamp": "2026-06-29T17:58:39.904308+00:00"}
-{"content_id": "78c56448-9897-4894-8038-de7d5011f88f", "creator_id": "m4-test-high-ai-control", "attribution": "likely_ai","confidence": 0.849505182820703, "llm_ai_likelihood": 0.99, "stylometric_ai_likelihood": 0.8361281992860939, "raw_ai_likelihood": 0.913064099643047, "signal_disagreement": 0.15387180071390605, "combined_ai_score": 0.849505182820703, "label": "Likely AI-generated. The system found strong patterns consistent with AI-generated writing. This is an estimate, not proof of authorship.", "status": "classified", "timestamp": "2026-06-29T17:58:47.986868+00:00"}
-{"event_type": "appeal", "content_id": "78c56448-9897-4894-8038-de7d5011f88f", "creator_id": "m4-test-high-ai-control", "creator_reasoning": "I wrote this content myself and would like the classification to be reviewed.", "status": "under_review","timestamp": "2026-06-29T18:03:35.549171+00:00"}
-```
+## Audit-Log Evidence
+
+The committed `audit_log.jsonl` file uses append-only JSON Lines. The table below summarizes actual records from the log; the full records retain additional fields such as `raw_ai_likelihood`, `signal_disagreement`, `combined_ai_score`, and the transparency label.
+
+| Timestamp                        | Test case                 | Content ID                             | Attribution    | Confidence | LLM score | Stylometric score | Status         |
+| -------------------------------- | ------------------------- | -------------------------------------- | -------------- | ---------: | --------: | ----------------: | -------------- |
+| 2026-06-29T17:58:37.148462+00:00 | `m4-test-clear-ai`        | `5a87fb69-efdb-4e93-b097-97a889521c14` | `uncertain`    |     0.5488 |    0.8000 |            0.3710 | `classified`   |
+| 2026-06-29T17:58:39.904308+00:00 | `m4-test-clear-human`     | `540e24aa-bfbc-4fae-b299-edd5937911a8` | `likely_human` |     0.7652 |    0.1000 |            0.2648 | `classified`   |
+| 2026-06-29T17:58:47.986868+00:00 | `m4-test-high-ai-control` | `78c56448-9897-4894-8038-de7d5011f88f` | `likely_ai`    |     0.8495 |    0.9900 |            0.8361 | `classified`   |
+| 2026-06-29T18:03:35.549171+00:00 | appeal for high-AI test   | `78c56448-9897-4894-8038-de7d5011f88f` | —              |          — |         — |                 — | `under_review` |
+
+The final row is an appeal event linked to the `likely_ai` classification through the same `content_id`. Its recorded reasoning was:
+
+This demonstrates that the log keeps timestamped classification decisions, both detection signals, confidence values, and linked appeal records in a structured format.
+
 
 ## Known Limitation
 
@@ -228,7 +237,8 @@ Request 12 : HTTP 429
 
 ## Walkthrough Video
 
-[Add video link here.]
+[![Watch the project walkthrough video](demo-preview.png)](https://drive.google.com/file/d/1H-H2e4NNUB2H0jgunTxAPffiUC7J-w4E/view?usp=sharing)
+
 
 
 ## Stretch Feature — Analytics Dashboard
@@ -243,3 +253,20 @@ The dashboard reads the existing append-only `audit_log.jsonl` file and does not
 * average confidence across classification records.
 
 I tested the dashboard at `http://127.0.0.1:5000/analytics` and confirmed that its displayed values matched the current audit-log entries.
+
+## Repository Structure
+```
+ai201-project4-provenance-guard/
+├── README.md
+├── planning.md
+├── app.py
+├── llm_signal.py
+├── stylometric_signal.py
+├── scoring.py
+├── audit_log.py
+├── requirements.txt
+├── audit_log.jsonl
+├── .gitignore
+└── ProvenanceGuardVideo/
+    └── Demo.mp4
+```
