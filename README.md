@@ -92,6 +92,11 @@ I chose this approach because disagreement should reduce confidence instead of a
 
 Near 0, evidence favors human-written content. Near 1, evidence favors AI-generated content. Near 0.5, evidence is mixed or uncertain. For example, a combined score of 0.60 leans somewhat toward AI, but it remains uncertain because it is below the 0.80 threshold.
 
+The API returns directional confidence using:
+
+```python
+confidence = max(combined_ai_score, 1 - combined_ai_score)
+
 ## Transparency Labels
 
 ### Likely AI-Generated
@@ -128,7 +133,7 @@ I ran five M4 test cases after resetting the local audit log.
 | Test case                 | Content ID                             | Attribution    | Confidence |
 | ------------------------- | -------------------------------------- | -------------- | ---------: |
 | `m4-test-clear-ai`        | `5a87fb69-efdb-4e93-b097-97a889521c14` | `uncertain`    |   `0.5488` |
-| `m4-test-clear-human`     | `540e24aa-bfbc-4fae-b299-edd5937911a8` | `likely_human` |   `0.7502` |
+| `m4-test-clear-human`     | `540e24aa-bfbc-4fae-b299-edd5937911a8` | `likely_human` |   `0.7652` |
 | `m4-test-formal-human`    | `f92e587c-7112-457f-893f-c8a88a226a2e` | `uncertain`    |   `0.6050` |
 | `m4-test-edited-ai`       | `a7bb2954-fe0e-40d5-889e-5d65941fccf5` | `likely_human` |   `0.7460` |
 | `m4-test-high-ai-control` | `78c56448-9897-4894-8038-de7d5011f88f` | `likely_ai`    |   `0.8495` |
@@ -167,8 +172,6 @@ The appeal is stored as a separate JSONL event with the same `content_id`, `even
 The following excerpt is from an actual test in `audit_log.jsonl`. The original classification and its appeal share the same `content_id`.
 
 
-## Audit-Log Evidence
-
 The committed `audit_log.jsonl` file uses append-only JSON Lines. The table below summarizes actual records from the log; the full records retain additional fields such as `raw_ai_likelihood`, `signal_disagreement`, `combined_ai_score`, and the transparency label.
 
 | Timestamp                        | Test case                 | Content ID                             | Attribution    | Confidence | LLM score | Stylometric score | Status         |
@@ -179,6 +182,8 @@ The committed `audit_log.jsonl` file uses append-only JSON Lines. The table belo
 | 2026-06-29T18:03:35.549171+00:00 | appeal for high-AI test   | `78c56448-9897-4894-8038-de7d5011f88f` | —              |          — |         — |                 — | `under_review` |
 
 The final row is an appeal event linked to the `likely_ai` classification through the same `content_id`. Its recorded reasoning was:
+
+> I wrote this content myself and would like the classification to be reviewed.
 
 This demonstrates that the log keeps timestamped classification decisions, both detection signals, confidence values, and linked appeal records in a structured format.
 
