@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify
 from llm_signal import llm_classify
 from stylometric_signal import stylometric_classify
 from scoring import combine_scores, get_label
-from audit_log import log_event, read_log
+from audit_log import log_event, read_log, find_classification
 
 app = Flask(__name__)
 
@@ -66,6 +66,41 @@ def submit():
         "confidence": confidence,
         "label": label,
         "status": "classified",
+    })
+
+
+@app.route("/appeal", methods=["POST"])
+def appeal():
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Request body must be a JSON object."}), 400
+
+    content_id = data.get("content_id")
+    creator_reasoning = data.get("creator_reasoning")
+
+    if not content_id or not isinstance(content_id, str) or not content_id.strip():
+        return jsonify({"error": "'content_id' must be a non-empty string."}), 400
+
+    if not creator_reasoning or not isinstance(creator_reasoning, str) or not creator_reasoning.strip():
+        return jsonify({"error": "'creator_reasoning' must be a non-empty string."}), 400
+
+    original = find_classification(content_id)
+    if original is None:
+        return jsonify({"error": f"No classified submission found for content_id '{content_id}'."}), 404
+
+    log_event({
+        "event_type": "appeal",
+        "content_id": content_id,
+        "creator_id": original["creator_id"],
+        "creator_reasoning": creator_reasoning,
+        "status": "under_review",
+    })
+
+    return jsonify({
+        "content_id": content_id,
+        "status": "under_review",
+        "message": "Appeal submitted and queued for review.",
     })
 
 

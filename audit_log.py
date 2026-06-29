@@ -26,6 +26,36 @@ def log_event(entry: dict) -> None:
         f.write(json.dumps(record) + "\n")
 
 
+def find_classification(content_id: str) -> dict | None:
+    """
+    Scan the full audit_log.jsonl for the first classification record matching
+    content_id.
+
+    Returns the record dict, or None if not found.
+    Does not use read_log() — that function only returns the latest 20 lines,
+    which would silently miss older submissions.
+    """
+    if not os.path.exists(LOG_FILE):
+        return None
+
+    with open(LOG_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if (
+                record.get("content_id") == content_id
+                and record.get("status") == "classified"
+            ):
+                return record
+
+    return None
+
+
 def read_log(limit: int = 20) -> list[dict]:
     """
     Return the most recent entries from audit_log.jsonl, up to `limit`.
